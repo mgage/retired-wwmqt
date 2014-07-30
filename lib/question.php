@@ -41,7 +41,7 @@ class WebworkQuestion {
         $env->fileName = "MoodleProblemTemplate";
         $env->probFileName = $env->fileName;
         $env->problemSeed = "0";
-        $env->displayMode = "HTML_dpng";
+        $env->displayMode = "images";
         $env->languageMode = $env->displayMode;
         $env->outputMode = $env->displayMode;
         $env->formattedOpenDate = "MoodleOpenDate";
@@ -59,7 +59,7 @@ class WebworkQuestion {
         $env->setNumber = "Default Set";
         $env->studentLogin = $USER->username;
         $env->studentName = $USER->firstname . " " . $USER->lastname;
-        $env->studentNID = $USER->username;
+        $env->studentID = $USER->username;
         $env->ANSWER_PREFIX = "Moodle";
         return $env;
     }
@@ -94,8 +94,8 @@ class WebworkQuestion {
             $env = WebworkQuestion::DefaultEnvironment();
             $env->problemSeed = $seed;
             $result = $client->renderProblem($env,$this->_data->code);
-            $derivation = new stdClass;
-            $derivation->html = base64_decode($result->output);
+            $derivation->html = base64_decode($result->body_text);
+            notify($derivation->html);
             $derivation->seed = $result->seed;
             $this->_derivation = $derivation;
         }

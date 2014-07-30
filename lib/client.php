@@ -42,11 +42,16 @@ class WebworkClient {
     * @param string $code The base64 encoded PG code.
     * @return mixed The results of the server call.
     */
-    public function renderProblem($env,$code) {
+    public function renderProblem($env,$code,$answers=array()) {
         $problem = new stdClass;
         $problem->code = $code;
+        $problem->id = $env->studentLogin;
+        $problem->seed = $env->problemSeed;
+        $problem->displayMode = $env->displayMode;
+        $problem->answers = $answers;
+  
         $problem->env = $env;
-        
+        notify("renderProblem");
         try {
             $results = $this->_client->renderProblem($problem);
         } catch (SoapFault $exception) {
@@ -68,9 +73,10 @@ class WebworkClient {
         $problem = new stdClass;
         $problem->code = $code;
         $problem->env = $env;
-        
+        notify("renderProblemAndCheck");
         try {
-            $response = $this->_client->renderProblemAndCheck($problem,$answers);
+            # $response = $this->_client->renderProblemAndCheck($problem,$answers);
+            $response = $this->_client->renderProblem($env,$code,$answers);
         } catch (SoapFault $exception) {
             print_error('error_soap','qtype_webwork',$exception);
             return false;
