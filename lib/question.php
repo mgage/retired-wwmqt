@@ -75,6 +75,7 @@ class WebworkQuestion {
     * @param object $derivation A derivation of the question.
     */
     public function WebworkQuestion($dataobject,$derivation=null) {
+        notify("creating new wwquestion");
         $this->_data = $dataobject;
         $this->_derivation = $derivation;    
     }
@@ -89,13 +90,18 @@ class WebworkQuestion {
     public function render($seed,&$answers,$event) {
         //JIT Derivation creation
         //Usually we have this from the check answers call
-        if(!isset($this->_derivation)) {
+        notify("enter question: render");
+        if(1 or !isset($this->_derivation)) {
             $client = WebworkClient::Get();
             $env = WebworkQuestion::DefaultEnvironment();
+            #notify("create derivation env : ".print_r($env, true));
             $env->problemSeed = $seed;
-            $result = $client->renderProblem($env,$this->_data->code);
-            $derivation->html = base64_decode($result->body_text);
-            notify($derivation->html);
+            #notify("_data->code ".print_r($this->_data->code,true));
+            notify("before rendering answers: ".print_r($answers, true));
+            $result = $client->renderProblem($env,$this->_data->code, $answers);
+            $derivation->html = base64_decode($result->output);
+            #notify("derivationHTML ".$derivation->html);
+            notify("after rendering answers:".print_r($answers,true));
             $derivation->seed = $result->seed;
             $this->_derivation = $derivation;
         }
@@ -103,26 +109,33 @@ class WebworkQuestion {
         $orderedanswers = array();
         $tempanswers = array();
         foreach($answers as $answer) {
-            $tempanswers[$answer->field] = $answer;
+            notify(" answer is ".print_r($answer,true));
+        	$tempanswers[$answer['field']] = $answer['answer'];
         }
         $answers = $tempanswers;
-        
+        notify("in render answers are: ".print_r($answers, true));
         $showpartialanswers = $this->_data->grading;
         $questionhtml = "";
         $parser = new HtmlParser($this->_derivation->html);
+        #notify("parser html is ".print_r($this->_data->code, true));
         $currentselect = "";
         $textarea = false;
         $checkboxes = array();
+        #notify("before parser");
         while($parser->parse()) {
             //change some attributes of html tags for moodle compliance
+            #notify("changing attributes".print_r($parser->iNodeType). " is ". NODE_TYPE_ELEMENT);
             if ($parser->iNodeType == NODE_TYPE_ELEMENT) {
-                $nodename = $parser->iNodeName;
+                $nodename = strtoupper($parser->iNodeName);
                 if(isset($parser->iNodeAttributes['name'])) {
                     $name = $parser->iNodeAttributes['name'];
                 }
-                //handle generic change of node's attribute name
+                notify("node name is ".$nodename);
+                notify("name is ". $name);
+                //handle generic change of node's attribute name']
                 if(($nodename == "INPUT") || ($nodename == "SELECT") || ($nodename == "TEXTAREA")) {
                     $parser->iNodeAttributes['name'] = 'resp' . $this->_data->question . '_' . $name;
+                    #notify("changing ". $name. " to ".$parser->iNodeAttributes['name']. "value ".$parser->iNodeAttributes["value"]);
                     if(($event == QUESTION_EVENTGRADE) && (isset($answers[$name]))) {
                         if($showpartialanswers) {
                             if(isset($parser->iNodeAttributes['class'])) {
@@ -130,6 +143,7 @@ class WebworkQuestion {
                             } else {
                                 $class = "";
                             }
+                            notify("name ".$name." answers ".print_r($answers, true));
                             $parser->iNodeAttributes['class'] = $class . ' ' . question_get_feedback_class($answers[$name]->score);
                         }
                     }
@@ -175,6 +189,7 @@ class WebworkQuestion {
             }
         }
         $answers = $orderedanswers;
+        notify("leave question render answers are: ".print_r($orderedanswers, true) );
         return $questionhtml;
     }
     
@@ -184,9 +199,13 @@ class WebworkQuestion {
     * @return true.
     */    
     public function grade(&$state) {
+        notify("enter grade");
+        notify("state is ".print_r($state,true));
+        #notify("state->responses['answers'] is ".print_r($state->responses['answers'], true));
         $seed = $state->responses['seed'];
         $answers = array();
         if((isset($state->responses['answers'])) && (is_array($state->responses['answers']))) {
+            notify("there are answers");
             foreach($state->responses['answers'] as $answerobj) {
                 if((is_string($answerobj->field)) && (is_string($answerobj->answer))) {
                     array_push($answers, array('field' => $answerobj->field, 'answer'=> $answerobj->answer));
@@ -194,13 +213,15 @@ class WebworkQuestion {
             }
         }
         if((isset($state->responses)) && (is_array($state->responses))) {
+            notify("responses is an array, creating answers");
+            notify(print_r($state->responses,true));
             foreach($state->responses as $key => $value) {
                 if((is_string($key)) && (is_string($value))) {
                     array_push($answers, array('field' => $key,'answer'=>$value));
                 }
             }
         }
-        
+        notify("inside grade answers is ".print_r($answers,true));
         //combine results from the answer array for checkboxes
         $checkanswers = array();
         $tempanswers = array();
@@ -232,18 +253,25 @@ class WebworkQuestion {
         $client = WebworkClient::Get();
         $env = WebworkQuestion::DefaultEnvironment();
         $env->problemSeed = $seed;
+        #notify("enter renderProblemAndCheck with ".base64_decode($this->_data->code) );
+        notify("enter renderProblemAndCheck with answers ".print_r($answers,true));
         $results = $client->renderProblemAndCheck($env,$this->_data->code,$answers);
+        notify("leave renderProblemAndCheck with results". print_r($results, true) );
+
         //process the question
         $question = $results->problem;
         $derivation = new stdClass;
         $derivation->seed = $question->seed;
         $derivation->html = base64_decode($question->output);
         $this->_derivation = $derivation;
+        $this->_data->grading = $question->grading;
         
         //assign a grade
         $answers = $results->answers;
+        notify("answers: ".print_r($answers,true) );
         $state->raw_grade = $this->processAnswers($answers);
-
+        notify("raw grade ".print_r($state->raw_grade, true));
+        notify("answers after grading".print_r($answers, true));
         // mark the state as graded
         $state->event = ($state->event ==  QUESTION_EVENTCLOSE) ? QUESTION_EVENTCLOSEANDGRADE : QUESTION_EVENTGRADE;
         
@@ -252,6 +280,7 @@ class WebworkQuestion {
             $state->responses = array();
         }
         $state->responses['answers'] = $answers;
+        notify("leave grade");
         return true;
     }
     
@@ -260,6 +289,7 @@ class WebworkQuestion {
     * @return true.
     */
     public function save() {
+        notify("saving this question ");
         if(isset($this->_data->id)) {
             $this->update();
         } else {
@@ -273,6 +303,7 @@ class WebworkQuestion {
     * @throws Exception on DB error.
     */
     protected function update() {
+        notify("question: update");
         $dbresult = update_record('question_webwork',$this->_data);
         if(!$dbresult) {
             throw new Exception();
@@ -284,20 +315,25 @@ class WebworkQuestion {
     * @throws Exception on DB error.
     */
     protected function insert() {
+        notify("question: insert: ".print_r($this,true));
+        $this->_data->grading=1;
+        notify("insert data: ".print_r($this->_data,true));
         $dbresult = insert_record('question_webwork',$this->_data);
         if($dbresult) {
             $this->_data->id = $dbresult;
         } else {
             throw new Exception();
         }
+        notify("after insert -- modified question: ".print_r($this, true));
     }
     
     /**
     * @desc Does basic processing on the answers back from the server.
-    * @param array $answers The answers recieved.
+    * @param array $answers The answers received.
     * @return integer The grade.
     */
     protected function processAnswers(&$answers) {
+        notify("process answers");
         $total = 0;   
         for($i=0;$i<count($answers);$i++) {
             $answers[$i]->field = base64_decode($answers[$i]->field);
@@ -316,6 +352,7 @@ class WebworkQuestion {
 //////////////////////////////////////////////////////////////////////////////////
     
     public function setParent($id) {
+        notify("set parent id to ".$id);
         $this->_data->question = $id;
     }
 

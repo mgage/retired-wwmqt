@@ -45,13 +45,10 @@ class WebworkClient {
     public function renderProblem($env,$code,$answers=array()) {
         $problem = new stdClass;
         $problem->code = $code;
-        $problem->id = $env->studentLogin;
-        $problem->seed = $env->problemSeed;
-        $problem->displayMode = $env->displayMode;
         $problem->answers = $answers;
-  
+        $problem->files = "foobar files";
         $problem->env = $env;
-        notify("renderProblem");
+        notify("client: renderProblem ".print_r($problem,true));
         try {
             $results = $this->_client->renderProblem($problem);
         } catch (SoapFault $exception) {
@@ -73,10 +70,10 @@ class WebworkClient {
         $problem = new stdClass;
         $problem->code = $code;
         $problem->env = $env;
-        notify("renderProblemAndCheck");
+        notify("client: renderProblemAndCheck");
+        notify("answers are ".print_r($answers, true));
         try {
-            # $response = $this->_client->renderProblemAndCheck($problem,$answers);
-            $response = $this->_client->renderProblem($env,$code,$answers);
+            $response = $this->_client->renderProblemAndCheck($problem,$answers);
         } catch (SoapFault $exception) {
             print_error('error_soap','qtype_webwork',$exception);
             return false;

@@ -30,6 +30,7 @@ class WebworkQuestionFactory {
     * @param WebworkQuestion $wwquestion The object to be stored
     */
     public static function Store($key,$wwquestion) {
+        notify("Store");
         if(!isset(WebworkQuestionFactory::$_library)) {
             WebworkQuestionFactory::$_library = array();
         }
@@ -83,7 +84,9 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function Load($wwquestionid) {
-        $record = get_record('question_webwork','id',$wwquestionid);
+        notify("load problem from database using wwquestionid ".$wwquestionid);
+        $record = get_record('question_webwork','question',$wwquestionid);
+        #notify("record is ".print_r($record, true));
         if(!$record) {
             throw new Exception();
         }
@@ -97,7 +100,9 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function LoadByParent($questionid) {
-        $record = get_record('question_webwork','question',$questionid);
+        notify("load problem from database using id ".$questionid);
+
+        $record = get_record('question_webwork','id',$questionid);
         if(!$record) {
             throw new Exception();
         }
@@ -115,6 +120,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function CreateFormUpdate($formdata) {
+       notify("createformupdate");
         return WebworkQuestionFactory::CreateFromForm($formdata);
     }
     
@@ -124,6 +130,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function CreateFormCopy($formdata) {
+       notify("create form copy");
         unset($formdata->id);
         return WebworkQuestionFactory::CreateFromForm($formdata);
     }
@@ -134,6 +141,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function CreateFormNew($formdata) {
+        notify("create from New");
         return WebworkQuestionFactory::CreateFromForm($formdata);
     }
     
@@ -147,6 +155,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function Import($code) {
+        notify("import");
         $output = WebworkQuestionFactory::CodeCheck($code);
         $importdata = new stdClass;
         $importdata->codecheck = 1;
@@ -162,8 +171,11 @@ class WebworkQuestionFactory {
 
     
     public static function CreateFromForm($formdata) {
+        notify("create from form");
+        notify("form_data".print_r($formdata,true));
         WebworkQuestionFactory::ParseFormData($formdata);
         $output = WebworkQuestionFactory::CodeCheck($formdata->code);
+        notify("processed form ".print_r($output, true));
         $formdata->grading = $output->grading;
         $wwquestion = new WebworkQuestion($formdata,$output->derivation);
         return $wwquestion;
@@ -175,6 +187,7 @@ class WebworkQuestionFactory {
     * @return true.
     */
     public static function ParseFormData(&$formdata) {
+        notify("parse form data");
         $formdata->code = base64_encode(stripslashes($formdata->code));
         return true;
     }
@@ -186,6 +199,7 @@ class WebworkQuestionFactory {
     * @return object Information on the question.
     */
     public function CodeCheck($code) {
+        notify("entering questionfactory:CodeCheck");
         $haserrors = false;
         $haswarnings = false;
         $client = WebworkClient::Get();
@@ -199,13 +213,12 @@ class WebworkQuestionFactory {
         if((isset($result->warnings)) && ($result->warnings != '') && ($result->warnings != null)) {
             $haswarnings = true;
         }
-        
+         $output = new stdClass;
+
         //Validity Check
         if(($haserrors == false) && ($haswarnings == false)) {
-            
-            $output = new stdClass;
-            $output->grading = $result->grading;
-            
+            notify("no code check errors");
+            $output->grading = $result->grading;            
             $derivation = new stdClass;
             $derivation->html = $result->output;
             $derivation->seed = $result->seed;
