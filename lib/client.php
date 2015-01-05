@@ -48,13 +48,16 @@ class WebworkClient {
         $problem->answers = $answers;
         $problem->files = "foobar files";
         $problem->env = $env;
-        notify("client: renderProblem ".print_r($problem,true));
+        if (debug_trace) {notify("renderProblem");}
+        if (full_debug) { notify("client: enter client::renderProblem data_sent = ".print_r($problem,true));}
         try {
             $results = $this->_client->renderProblem($problem);
         } catch (SoapFault $exception) {
             print_error('error_soap','qtype_webwork',$exception);
+            notify("ERROR in renderProblem $exception");
             return false;
         }
+        if (full_debug) {  notify("client: leave client::renderProblem: data_returned = ".print_r($results, true)); }
         return $results;
         
     }
@@ -70,14 +73,16 @@ class WebworkClient {
         $problem = new stdClass;
         $problem->code = $code;
         $problem->env = $env;
-        notify("client: renderProblemAndCheck");
-        notify("answers are ".print_r($answers, true));
+        if (debug_trace) { notify("client::renderProblemAndCheck");}
+        if (full_debug) { notify("client::renderProblemAndCheck data_sent: problem= ".print_r($problem,true)." answers= ".print_r($answers, true));}
         try {
             $response = $this->_client->renderProblemAndCheck($problem,$answers);
         } catch (SoapFault $exception) {
             print_error('error_soap','qtype_webwork',$exception);
             return false;
         }
+        $response_tmp = $response;
+         if (debug_trace) { notify("leave client::renderProblemAndCheck data_returned = ".print_r($response, true)); }
         return $response;
     }
 }

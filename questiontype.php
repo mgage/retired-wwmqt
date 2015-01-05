@@ -18,6 +18,8 @@ require_once("$CFG->dirroot/question/type/webwork/lib/questionfactory.php");
 require_once("$CFG->dirroot/question/type/questiontype.php");
 require_once("$CFG->dirroot/backup/lib.php");
 
+const full_debug = 0;
+const debug_trace = 0;
 
 /**
  * The webwork question class
@@ -25,11 +27,11 @@ require_once("$CFG->dirroot/backup/lib.php");
  * Allows webwork questions to be used in Moodle through a new question type.
  */
 class webwork_qtype extends default_questiontype {
-    
+      
     //////////////////////////////////////////////////////////////////
     // Functions overriding default_questiontype functions
     //////////////////////////////////////////////////////////////////
-    
+
     /**
     * @desc Required function that names the question type.
     * @return string webwork.
@@ -52,13 +54,13 @@ class webwork_qtype extends default_questiontype {
      */
     function get_question_options(&$question) {
         //check if we have a question id.s
-        notify("get question options");
+        if (full_debug) { notify("get question options"); }
         if(!isset($question->id)) {
             print_error('error_question_id','qtype_webwork');
             return false;
         }
         //check if we have a webwork question for this...
-        notify("question is ".print_r($question,true));
+        if (full_debug) {notify("question is ".print_r($question,true)) ;}
         try {
             #$wwquestion = WebworkQuestionFactory::LoadByParent($question->id);
             $wwquestion = WebworkQuestionFactory::Load($question->id);
@@ -77,7 +79,7 @@ class webwork_qtype extends default_questiontype {
     */
     function save_question($question, $form, $course) {
         //check if we have a filepath key
-        notify("enter save_questions");
+        if (debug_trace) { notify("enter save_questions");}
         if(isset($form->storekey)) {
             $key = $form->storekey;
         } elseif(isset($question->storekey)) {
@@ -97,7 +99,7 @@ class webwork_qtype extends default_questiontype {
         } catch(Exception $e) {
             print_error('error_no_filepath_record','qtype_webwork');
         }
-        notify("saving question ".print_r($question,true)."form ".print_r($form, true) );
+        if (full_debug) { notify("saving question ".print_r($question,true)."form ".print_r($form, true) ); }
         //call parent
         return parent::save_question($question,$form,$course);
     }
@@ -135,7 +137,7 @@ class webwork_qtype extends default_questiontype {
     * @return bool true. 
     */
     function create_session_and_responses(&$question, &$state, $cmoptions, $attempt) {
-        notify("Create session and responses");
+        if (debug_trace) { notify("Create session and responses"); }
         $state->responses['seed'] = rand(1,10000);
         return true;
     }
@@ -146,11 +148,11 @@ class webwork_qtype extends default_questiontype {
      * @return boolean to indicate success of failure.
      */
     function delete_question($questionid) {
-       notify("deleting question $questionid");
+       if (debug_trace) { notify("deleting question $questionid");}
         try {
             #$wwquestion = WebworkQuestionFactory::LoadByParent($questionid);
             $wwquestion = WebworkQuestionFactory::Load($questionid);  #FIXME
-            notify("question is ".print_r($wwquestion, true));
+            if (full_debug) { notify("question is ".print_r($wwquestion, true)); }
             $wwquestion->remove();
             notify($questionid." removed ");
         } catch(Exception $e) {
@@ -166,11 +168,11 @@ class webwork_qtype extends default_questiontype {
     * @return bool true.
     */
     function restore_session_and_responses(&$question, &$state) {
-        notify("restore session and responses");
+        if (debug_trace) { notify("restore session and responses"); }
         $serializedresponse = $state->responses[''];
         $serializedresponse = base64_decode($serializedresponse);
         $responses = unserialize($serializedresponse);
-        notify("restored responses are: ".print_r($responses, true));
+        if (full_debug) { notify("restored responses are: ".print_r($responses, true));}
         $state->responses = $responses;
         return true;
     }
@@ -182,9 +184,9 @@ class webwork_qtype extends default_questiontype {
     * @return true, or error on db change.
     */
     function save_session_and_responses(&$question, &$state) {
-        notify("save session and responses. State_id=".$state->id);
+        if (debug_trace) { notify("save session and responses. State_id=".$state->id); }
         $responses = $state->responses;
-        notify("saving responses : ".print_r($responses, true));
+        if (full_debug) { notify("saving responses : ".print_r($responses, true)); }
         $serialized = serialize($responses);
         $serialized = base64_encode($serialized);
         return set_field('question_states', 'answer', $serialized, 'id', $state->id);
@@ -199,11 +201,11 @@ class webwork_qtype extends default_questiontype {
     */
     function print_question_formulation_and_controls(&$question, &$state, $cmoptions, $options) {
         global $CFG,$USER;
-        notify("print question formulation and controls");  #evaluating the answer
-        #notify("question: ".print_r($question, true) );
-        #notify("state: ".print_r($state, true));
-        #notify("options: ".print_r($options, true ));
-        #notify("cmoptions: ".print_r($cmoptions, true ));
+        if (debug_trace) { notify("enter print_question_formulation_and_controls"); } #evaluating the answer
+//        #notify("question: ".print_r($question, true) );
+//      #notify("state: ".print_r($state, true));
+//        #notify("options: ".print_r($options, true ));
+//        #notify("cmoptions: ".print_r($cmoptions, true ));
         //find webworkquestion object
         $wwquestion = $question->webwork;
         if(!isset($question->webwork)) {
@@ -220,31 +222,31 @@ class webwork_qtype extends default_questiontype {
         //find answers
         $answers=array();
          if((isset($state->responses)) && (is_array($state->responses))) {
-            notify("responses is an array, creating answers");
-            notify(print_r($state->responses,true));
+            if (full_debug) { notify("questiontype: responses is an array containing answers ".print_r($state->responses,true)); }
             foreach($state->responses as $key => $value) {
                 if((is_string($key)) && (is_string($value))) {
                     array_push($answers, array('field' => $key,'answer'=>$value));
                 }
             }
         }
-        #if(isset($state->responses['answers'])) {
-            #$answers = $state->responses['answers'];
-        #}
-        # else {
-        #    $answers = array();
-        #}
-        notify("print_question: answers: ".print_r($answers, true));
+ //        if(isset($state->responses['answers'])) {
+//             $answers = $state->responses['answers'];
+//         }
+//          else {
+//             $answers();
+//         }
+        if (full_debug) { notify("question_type: print_question: answers: ".print_r($answers, true)); }
         $seed = $state->responses['seed'];
         $event = $state->event;
-        notify("call render with answers".print_r($answers, true) );
+        if (full_debug) { notify("questiontype: call render with answers".print_r($answers, true) ); }
         $questionhtml = $wwquestion->render($seed,$answers,$event);
         $showPartiallyCorrectAnswers = $wwquestion->getGrading();
         $qid = $wwquestion->getQuestion();
-        notify(" partialCorrect ".print_r($showPartiallyCorrectAnswers, true));
+        if (full_debug) { notify("questiontype: showPartiallyCorrectAnswers=".print_r($showPartiallyCorrectAnswers, true)); }
+        
         //Answer Table construction
         if($state->event == QUESTION_EVENTGRADE) {
-            notify("grading answers");
+            notify("questiontype: grading answers");
             $answertable = new stdClass;
             $answertable->head = array();
             if($showPartiallyCorrectAnswers == 1) {
@@ -253,27 +255,48 @@ class webwork_qtype extends default_questiontype {
             array_push($answertable->head,'Answer','Preview','Evaluated','Errors');
             $answertable->width = "100%";
             $answertabledata = array();
+            notify("questiontype: answers are ".print_r($answers,true));
             foreach ($answers as $answer) {
+                notify("questionstype: answer is ". print_r($answer,true));
+                if (!is_object($answer) ) { //create a fake object
+                 $tmp =$answer;
+                 $answer = new stdClass();
+                 $answer->answer = $tmp;
+                 $answer->score =1;
+                 $answer->preview = "undefined";
+                 $answer->evaluated="maybe";
+                 $answer->answer_msg="what?";
+                }
+                 notify("answer is ", print_r($answer, true));
+            
                 $answertablerow = array();
-                if($showPartiallyCorrectAnswers == 1) {
+                //MEG
+                notify("questiontype: partial correct answers = ". $showPartiallyCorrectAnswers);
+                if($showPartiallyCorrectAnswers == 1  ) {
                     $firstfield = '';
                     $firstfield .= question_get_feedback_image($answer->score);
-                    if($answer->score == 1) { 
+                    notify("questiontype: score = ".$answer->score);
+                    if( $answer->score == 1) { 
                         $firstfield .= "Correct"; 
                     } else { 
                         $firstfield .= "Incorrect"; 
                     }
+                    notify("first field = ".$firstfield);
                     array_push($answertablerow,$firstfield);
                 }
                 array_push($answertablerow,$answer->answer,$answer->preview,$answer->evaluated,$answer->answer_msg);
                 array_push($answertabledata,$answertablerow);
             }
             $answertable->data = $answertabledata;
-            $answertable = make_table($answertable);
+            notify("questiontype: data for table ".print_r($answertable, print_r));
+            $answertable = print_table($answertable);
         } else {
             $answertable = "";
         }
+        if (debug_trace) { notify("enter display.html"); }
         include("$CFG->dirroot/question/type/webwork/display.html");
+        if (debug_trace) { notify("leave display.html"); }
+        if (debug_trace) { notify("leave print_question_formulation_and_controls"); }
         flush();
     }
     
@@ -284,9 +307,10 @@ class webwork_qtype extends default_questiontype {
     * @param $cmoptions object ...
     * @return boolean true.
     */
+    
     function grade_responses(&$question, &$state, $cmoptions) {
         global $CFG,$USER;
-        notify("grade responses");
+        if (debug_trace) { notify("GRADE RESPONSES"); }
         if(!isset($question->webwork)) {
             print_error('error_no_wwquestion','qtype_webwork');
             return false;
@@ -295,7 +319,7 @@ class webwork_qtype extends default_questiontype {
         $wwquestion->grade($state);
         // Apply the penalty for this attempt
         $state->penalty = $question->penalty * $question->maxgrade;
-        notify("leave grade responses");
+        if (debug_trace) {notify("leave grade responses"); }
         return true;
     }
     
@@ -308,7 +332,7 @@ class webwork_qtype extends default_questiontype {
     * @return boolean, Returns true if the state are equal | false if not.
     */
     function compare_responses($question, $state, $teststate) {  
-        notify("compare responses");      
+        if (debug_trace) { notify("compare responses"); }     
         if(sizeof($state->responses) != sizeof($teststate->responses)) {
             return false;
         }
@@ -328,7 +352,7 @@ class webwork_qtype extends default_questiontype {
     * @return object Object containing the seed,derivedid, and answers.
     */
     function get_correct_responses(&$question, &$state) {
-        notify("get correct responses");
+        if (debug_trace) { notify("get correct responses"); }
         if(!isset($question->webwork)) {
             print_error('error_no_wwquestion','qtype_webwork');
             return false;
@@ -390,7 +414,7 @@ class webwork_qtype extends default_questiontype {
     * @return array HTML code with <img> tag for each picture.
     */
     function get_actual_response($question, $state) {
-        notify("get actual response");
+        if (debug_trace) { notify("get actual response");}
         $temp = '';
         $i = 1;
         foreach($state->responses['answers'] as $key => $value) {
@@ -484,6 +508,19 @@ class webwork_qtype extends default_questiontype {
             }
         }
         return $status;
+    }
+    function print_question_grading_details($question, $state, $cmoptions, $options) {
+    	if (debug_trace) { notify("enter print_question_grading_details"); }
+    	if (full_debug) { notify("question_object: ".print_r($question,true)); }
+    	//notify("state_object: ".print_r($state,true));
+    	if (full_debug) { notify("cmoptions ".print_r($cmoptions, true)); }
+    	//notify("options ".print_r($options, true));
+    	if (full_debug) { notify("Calling grade_responses internally"); }
+    	$this->grade_responses(&$question, &$state, $cmoptions);
+    	//$state->last_graded->grade = 1;
+    	//$state->last_graded->raw_grade = 1;
+    	if (full_debug) { notify("state_object: ".print_r($state,true)); }
+    	parent::print_question_grading_details($question, $state, $cmoptions, $options);
     }
 }
 

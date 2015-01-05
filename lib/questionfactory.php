@@ -84,7 +84,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function Load($wwquestionid) {
-        notify("load problem from database using wwquestionid ".$wwquestionid);
+        if (full_debug) { notify("load problem from database using wwquestionid ".$wwquestionid); }
         $record = get_record('question_webwork','question',$wwquestionid);
         #notify("record is ".print_r($record, true));
         if(!$record) {
