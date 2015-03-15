@@ -30,7 +30,7 @@ class WebworkQuestionFactory {
     * @param WebworkQuestion $wwquestion The object to be stored
     */
     public static function Store($key,$wwquestion) {
-        notify("Store");
+        //notify("Store");
         if(!isset(WebworkQuestionFactory::$_library)) {
             WebworkQuestionFactory::$_library = array();
         }
@@ -100,7 +100,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function LoadByParent($questionid) {
-        notify("load problem from database using id ".$questionid);
+        //notify("load problem from database using id ".$questionid);
 
         $record = get_record('question_webwork','id',$questionid);
         if(!$record) {
@@ -120,7 +120,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function CreateFormUpdate($formdata) {
-       notify("createformupdate");
+       //notify("createformupdate");
         return WebworkQuestionFactory::CreateFromForm($formdata);
     }
     
@@ -155,7 +155,7 @@ class WebworkQuestionFactory {
     * @return WebworkQuestion object.
     */
     public static function Import($code) {
-        notify("import");
+        //notify("import");
         $output = WebworkQuestionFactory::CodeCheck($code);
         $importdata = new stdClass;
         $importdata->codecheck = 1;
@@ -171,11 +171,11 @@ class WebworkQuestionFactory {
 
     
     public static function CreateFromForm($formdata) {
-        notify("create from form");
-        notify("form_data".print_r($formdata,true));
+        //notify("create from form");
+        //notify("form_data".print_r($formdata,true));
         WebworkQuestionFactory::ParseFormData($formdata);
         $output = WebworkQuestionFactory::CodeCheck($formdata->code);
-        notify("processed form ".print_r($output, true));
+        //notify("processed form ".print_r($output, true));
         $formdata->grading = $output->grading;
         $wwquestion = new WebworkQuestion($formdata,$output->derivation);
         return $wwquestion;
@@ -187,7 +187,7 @@ class WebworkQuestionFactory {
     * @return true.
     */
     public static function ParseFormData(&$formdata) {
-        notify("parse form data");
+        //notify("parse form data");
         $formdata->code = base64_encode(stripslashes($formdata->code));
         return true;
     }
@@ -199,7 +199,7 @@ class WebworkQuestionFactory {
     * @return object Information on the question.
     */
     public function CodeCheck($code) {
-        notify("entering questionfactory:CodeCheck");
+        //notify("entering questionfactory:CodeCheck");
         $haserrors = false;
         $haswarnings = false;
         $client = WebworkClient::Get();
@@ -217,7 +217,7 @@ class WebworkQuestionFactory {
 
         //Validity Check
         if(($haserrors == false) && ($haswarnings == false)) {
-            notify("no code check errors");
+            //notify("no code check errors");
             $output->grading = $result->grading;            
             $derivation = new stdClass;
             $derivation->html = $result->output;

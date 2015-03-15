@@ -154,7 +154,7 @@ class webwork_qtype extends default_questiontype {
             $wwquestion = WebworkQuestionFactory::Load($questionid);  #FIXME
             if (full_debug) { notify("question is ".print_r($wwquestion, true)); }
             $wwquestion->remove();
-            notify($questionid." removed ");
+            if (debug_trace) { notify($questionid." removed "); }
         } catch(Exception $e) {
             print_error('error_question_id_no_child','qtype_webwork');
         }
@@ -246,7 +246,7 @@ class webwork_qtype extends default_questiontype {
         
         //Answer Table construction
         if($state->event == QUESTION_EVENTGRADE) {
-            notify("questiontype: grading answers");
+            if (full_debug) { notify("questiontype: grading answers"); }
             $answertable = new stdClass;
             $answertable->head = array();
             if($showPartiallyCorrectAnswers == 1) {
@@ -255,9 +255,9 @@ class webwork_qtype extends default_questiontype {
             array_push($answertable->head,'Answer','Preview','Evaluated','Errors');
             $answertable->width = "100%";
             $answertabledata = array();
-            notify("questiontype: answers are ".print_r($answers,true));
+            if (full_debug) { notify("questiontype: answers are ".print_r($answers,true)); }
             foreach ($answers as $answer) {
-                notify("questionstype: answer is ". print_r($answer,true));
+                if (full_debug) { notify("questionstype: answer is ". print_r($answer,true)); }
                 if (!is_object($answer) ) { //create a fake object
                  $tmp =$answer;
                  $answer = new stdClass();
@@ -267,28 +267,28 @@ class webwork_qtype extends default_questiontype {
                  $answer->evaluated="maybe";
                  $answer->answer_msg="what?";
                 }
-                 notify("answer is ", print_r($answer, true));
+                 if (full_debug) { notify("answer is ", print_r($answer, true)); }
             
                 $answertablerow = array();
                 //MEG
-                notify("questiontype: partial correct answers = ". $showPartiallyCorrectAnswers);
+                if (full_debug) { notify("questiontype: partial correct answers = ". $showPartiallyCorrectAnswers); }
                 if($showPartiallyCorrectAnswers == 1  ) {
                     $firstfield = '';
                     $firstfield .= question_get_feedback_image($answer->score);
-                    notify("questiontype: score = ".$answer->score);
+                    if (full_debug) { notify("questiontype: score = ".$answer->score); }
                     if( $answer->score == 1) { 
                         $firstfield .= "Correct"; 
                     } else { 
                         $firstfield .= "Incorrect"; 
                     }
-                    notify("first field = ".$firstfield);
+                    if (full_debug) { notify("first field = ".$firstfield); }
                     array_push($answertablerow,$firstfield);
                 }
                 array_push($answertablerow,$answer->answer,$answer->preview,$answer->evaluated,$answer->answer_msg);
                 array_push($answertabledata,$answertablerow);
             }
             $answertable->data = $answertabledata;
-            notify("questiontype: data for table ".print_r($answertable, print_r));
+            if (full_debug) { notify("questiontype: data for table ".print_r($answertable, print_r)); }
             $answertable = print_table($answertable);
         } else {
             $answertable = "";
@@ -421,7 +421,7 @@ class webwork_qtype extends default_questiontype {
             $responses[] = "Q$i) " . $value->answer;
             $i++;
         }
-        notify("actual responses are ".print_r($responses, true));
+        if (debug_trace) {notify("actual responses are ".print_r($responses, true));}
         return $responses;
     }
     
