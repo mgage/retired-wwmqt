@@ -26,6 +26,12 @@ const debug_trace = 0;
  *
  * Allows webwork questions to be used in Moodle through a new question type.
  */
+ 
+ #   utility function used to sort answers in print_question_formulation_and_controls()
+    function myalphacmp($a, $b)  {
+    		return strcmp($a->field, $b->field);
+	}
+
 class webwork_qtype extends default_questiontype {
       
     //////////////////////////////////////////////////////////////////
@@ -218,32 +224,43 @@ class webwork_qtype extends default_questiontype {
             print_error('error_no_seed','qtype_webwork');
             return false;
         }
-        
+ 
         //find answers
         $answers=array();
          if((isset($state->responses)) && (is_array($state->responses))) {
-            if (full_debug) { notify("questiontype: responses is an array containing answers ".print_r($state->responses,true)); }
+            if (full_debug) { notify("questiontype: responses is an array containing submitted answers ".print_r($state->responses,true)); }
             foreach($state->responses as $key => $value) {
                 if((is_string($key)) && (is_string($value))) {
                     array_push($answers, array('field' => $key,'answer'=>$value));
                 }
             }
         }
- //        if(isset($state->responses['answers'])) {
-//             $answers = $state->responses['answers'];
-//         }
-//          else {
-//             $answers();
-//         }
+ 
+
         if (full_debug) { notify("question_type: print_question: answers: ".print_r($answers, true)); }
         $seed = $state->responses['seed'];
         $event = $state->event;
         if (full_debug) { notify("questiontype: call render with answers".print_r($answers, true) ); }
+        
+        # render the question 
         $questionhtml = $wwquestion->render($seed,$answers,$event);
         $showPartiallyCorrectAnswers = $wwquestion->getGrading();
         $qid = $wwquestion->getQuestion();
         if (full_debug) { notify("questiontype: showPartiallyCorrectAnswers=".print_r($showPartiallyCorrectAnswers, true)); }
         
+        // grade responses if there are any?
+        if (full_debug) { notify("Calling grade_responses internally"); }
+    	$this->grade_responses(&$question, &$state, $cmoptions);
+        if (full_debug) { notify("questiontype: after grading responses is an array containing answers ".print_r($state->responses,true)); }
+        if(isset($state->responses['answers'])) {   #if answers have been graded
+            $graded_answers = $state->responses['answers'];
+        } else {
+        	$graded_answers = Array();
+        }
+        
+        # sort graded_answers
+		usort($graded_answers, "myalphacmp");  # utility function myalphacmp defined at top of script
+		
         //Answer Table construction
         if($state->event == QUESTION_EVENTGRADE) {
             if (full_debug) { notify("questiontype: grading answers"); }
@@ -256,13 +273,14 @@ class webwork_qtype extends default_questiontype {
             $answertable->width = "100%";
             $answertabledata = array();
             if (full_debug) { notify("questiontype: answers are ".print_r($answers,true)); }
-            foreach ($answers as $answer) {
+            foreach ($graded_answers as $answer) {
                 if (full_debug) { notify("questionstype: answer is ". print_r($answer,true)); }
                 if (!is_object($answer) ) { //create a fake object
+
                  $tmp =$answer;
                  $answer = new stdClass();
                  $answer->answer = $tmp;
-                 $answer->score =1;
+                 $answer->score ="unknown";
                  $answer->preview = "undefined";
                  $answer->evaluated="maybe";
                  $answer->answer_msg="what?";
@@ -442,6 +460,8 @@ class webwork_qtype extends default_questiontype {
         }
         return $responses;
     }
+
+
     
     /**
      * Backup the data in the question
@@ -515,8 +535,8 @@ class webwork_qtype extends default_questiontype {
     	//notify("state_object: ".print_r($state,true));
     	if (full_debug) { notify("cmoptions ".print_r($cmoptions, true)); }
     	//notify("options ".print_r($options, true));
-    	if (full_debug) { notify("Calling grade_responses internally"); }
-    	$this->grade_responses(&$question, &$state, $cmoptions);
+    	//if (full_debug) { notify("Calling grade_responses internally"); }
+    	//$this->grade_responses(&$question, &$state, $cmoptions);
     	//$state->last_graded->grade = 1;
     	//$state->last_graded->raw_grade = 1;
     	if (full_debug) { notify("state_object: ".print_r($state,true)); }
