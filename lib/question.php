@@ -105,7 +105,7 @@ class WebworkQuestion {
             $env = WebworkQuestion::DefaultEnvironment();
             if (full_debug) { notify("create derivation env : ".print_r($env, true));}
             $env->problemSeed = $seed;
-            #notify("_data->code ".print_r($this->_data->code,true));
+            //notify("_data->code ".print_r($this->_data->code,true));
             if (full_debug) { notify("before processing by PG answers: ".print_r($answers, true));}
             $result = $client->renderProblem($env,$this->_data->code, $answers);
             if (full_debug) { notify("question: render: received result from client::renderProblem. Answers may have been modified by renderer.");}
@@ -121,7 +121,7 @@ class WebworkQuestion {
         
         // convert answer format
         if (full_debug) { notify( "convert answer format from that returned by PG"); }
-
+         //notify( "PG answers ". print_r($answers,true) );
         foreach($answers as $answer) {           
         	$tempanswers[$answer['field']] = $answer['answer'];
         }
@@ -137,10 +137,11 @@ class WebworkQuestion {
         $currentselect = "";
         $textarea = false;
         $checkboxes = array();
+        //notify( "all answers ".print_r($answers, true));
         if (full_debug) {  notify( "question:: renderer- modifying HTML, adjusting answer labels, etc. "); }
         while($parser->parse()) {
             //change some attributes of html tags for moodle compliance
-            #notify("changing attributes".print_r($parser->iNodeType). " is ". NODE_TYPE_ELEMENT);
+            //notify("changing attributes".print_r($parser->iNodeType). " is ". NODE_TYPE_ELEMENT);
             if ($parser->iNodeType == NODE_TYPE_ELEMENT) {
                 $nodename = strtoupper($parser->iNodeName);
                 if(isset($parser->iNodeAttributes['name'])) {
@@ -159,10 +160,13 @@ class WebworkQuestion {
                             } else {
                                 $class = "";
                             }
-//							 notify("question: name ".$name." answers ".print_r($answers, true));
-                            //MEG -- need to get the score correctly
-                            if ( !isset($answers[$name]['score'] )) {$answers[$name]['score']=0;}               
-                            $parser->iNodeAttributes['class'] = $class . ' ' . question_get_feedback_class($answers[$name]['score']);
+							 //notify("question: name ".$name." answers [".print_r($answers[$name], true)."]");
+                            //FIXME  MEG -- need to get the score correctly
+                            //FIXME answers don't appear to have scores yet because they haven't been graded
+                            //if ( !isset($answers[$name]['score'] )) {
+                            //	notify("question: name ".$name." answers ".print_r($answers[$name], true));              
+                            //	$parser->iNodeAttributes['class'] = $class . ' ' . question_get_feedback_class($answers[$name]['score']);
+                            //}
                         }
                     }
                 }
@@ -179,6 +183,7 @@ class WebworkQuestion {
                     } else if($nodetype == "TEXT") {
                         if(isset($answers[$name])) {
                             //FILLING IN ANSWER (FIELD)
+                            //notify("Pushing to $name $answers[$name], ", print_r($answers,true) );
                             array_push($orderedanswers,$answers[$name]);
                             //MEG remove ->answer 
                             $parser->iNodeAttributes['value'] = $answers[$name];
